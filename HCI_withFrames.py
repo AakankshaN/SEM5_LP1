@@ -46,7 +46,7 @@ Train_entry.grid(row=4,column=1)
 #  5)Date
 Date_label = tk.Label(form_frame,text="Select Date",font=("Arial",12))
 Date_label.grid(row=5,column=0)
-# Date_var = tk.StringVar(value="Male")
+Date_var = tk.StringVar(value="Male")
 Date_entry = DateEntry(form_frame,Date_pattern = "dd/mm/yyyy")
 Date_entry.grid(row=5,column=1)
 
