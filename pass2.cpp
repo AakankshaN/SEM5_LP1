@@ -122,134 +122,80 @@
 //     return 0;
 // }
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <vector>
+// #include<bits/stdc++.h>
+#include<iostream>
+#include<vector>
+#include<fstream>
+#include<sstream>
+#include<algorithm>
 
 using namespace std;
 
-int main() {
-    ifstream sin("SymOutput.txt");
-    ifstream lin("LitOutput.txt");
-    ifstream fin("ICOutput.txt");
-    ofstream fout("MachineOutput.txt");
-
-    string mytext, word;
-
-    vector<pair<string, int>> symtable;
-    while (getline(sin, mytext)) {
-        try {
-            stringstream st(mytext);
-            st >> word;
-
-            string label = word;
-            st >> word;
-            symtable.push_back({label, stoi(word)});
-        } catch (const std::invalid_argument &e) {
-            cerr << e.what() << " used" << endl;
+string table(ifstream &infile, const string &n) {
+    string no, name, addr;
+    while (infile >> no >> name >> addr) {
+        if (no == n) {
+            infile.clear(); 
+            infile.seekg(0, ios::beg); 
+            return addr;
         }
     }
-    sin.close();
+    infile.clear(); 
+    infile.seekg(0, ios::beg); 
+    return "NAN";
+}
 
-    vector<pair<string, int>> litable;
-    while (getline(lin, mytext)) {
-        try {
-            stringstream st(mytext);
-            st >> word;
 
-            string label = word.substr(1, word.length() - 2); // remove '=' and "'"
-            st >> word;
-            litable.push_back({label, stoi(word)});
-        } catch (const std::invalid_argument &e) {
-            cerr << e.what() << "Used" << endl;
+int main(){
+    ifstream ic, st, lt;
+    ic.open("ic.txt");
+    st.open("symtable.txt");
+    lt.open("littable.txt");
+
+    ofstream outfile;
+    outfile.open("machinecode.txt");
+
+    string lc, ic1, ic2, ic3;
+    cout << "\n -- ASSEMBLER PASS-2 OUTPUT --" << endl;
+	cout << "\n LC\t <INTERMEDIATE CODE>\t\t\tLC\t <MACHINE CODE>" << endl;
+
+    while(ic >> lc >> ic1 >> ic2 >> ic3){
+        string machine_code;
+        // cout << ic1.substr(4,2)<<endl;
+
+        if (ic1.substr(1,2) == "AD" || ((ic1.substr(1, 2) == "DL" && ic1.substr(4, 2) == "02"))){
+            machine_code = "No Machine Code";
         }
-    }
-    lin.close();
 
-    int lc = -1;
-    while (getline(fin, mytext)) {
-        stringstream st(mytext);
-        st >> word;
-
-        string cls, mnemonic;
-        cls = word.substr(1, 2);
-        mnemonic = word.substr(4, 2);
-
-        if (cls == "AD") {
-            fout << "  No Machine Code  " << endl;
-
-            if (mnemonic == "01") {
-                try {
-                    st >> word;
-                    word = word.substr(3, word.length() - 4);
-                    lc = stoi(word);
-                } catch (const std::invalid_argument &e) {
-                    cerr << e.what() << "used" << endl;
-                }
-            } else if (mnemonic == "03") {
-                try {
-                    st >> word;
-                    word = word.substr(4, 1);
-                    int ind = stoi(word);
-                    ind--;
-                    lc = symtable[ind].second;
-                } catch (const std::invalid_argument &e) {
-                    cerr << e.what() << " used" << endl;
-                }
-            }
-        } else if (cls == "IS") {
-            fout << lc << " " << mnemonic << " ";
-            lc++;
-
-            if (mnemonic == "00") {
-                fout << "0 000" << endl;
-                continue;
-            }
-
-            st >> word;
-            if (word[1] != 'S' && word[1] != 'L') {
-                word = word.substr(1, 1);
-                fout << word << " ";
-                st >> word;
-            } else {
-                fout << "0 ";
-            }
-
-            try {
-                if (word[1] == 'S') {
-                    string temp = word.substr(3, 2);
-                    int num = stoi(temp);
-                    num--;
-                    fout << symtable[num].second << endl;
-                } else if (word[1] == 'L') {
-                    string temp = word.substr(3, 2);
-                    int num = stoi(temp);
-                    num--;
-                    fout << litable[num].second << endl;
-                }
-            } catch (const std::invalid_argument &e) {
-                cerr << e.what() << " used" << endl;
-            }
-        } else if (cls == "DL") {
-            fout << lc << " ";
-            lc++;
-
-            if (mnemonic == "01") {
-                fout << "00 0 ";
-                st >> word;
-                word = word.substr(3, 1);
-                fout << "00" << word << endl;
-            } else if (mnemonic == "02") {
-                fout << "No Machine Code" << endl;
-            }
+        else if(ic1.substr(1,2) == "DL" && ic1.substr(4, 2) == "01"){
+            machine_code = "00\t0\t00" + ic2.substr(3, 1);
         }
+        else{
+            if(ic1 == "(IS,00)") 
+				machine_code = ic1.substr(4, 2) + "\t0\t000";
+			else if(ic2.substr(1, 1) == "S") 
+				machine_code = ic1.substr(4, 2) + "\t0\t" + table(st, ic2.substr(4, 1));
+			else
+			{
+				if(ic3.substr(1, 1) == "S") 
+					machine_code = ic1.substr(4, 2) + "\t" + ic2.substr(1, 1) + "\t" + table(st, ic3.substr(4, 1));
+				else 
+					machine_code = ic1.substr(4, 2) + "\t" + ic2.substr(1, 1) + "\t" + table(lt, ic3.substr(4, 1));
+			}
+		}
+
+		if(ic1 == "(AD,03)") 
+		{
+			cout << " " << lc << "\t" << ic1 << "\t" << ic2 << " " << ic3 << "\t\t\t" << lc << "\t" << machine_code << endl;
+			outfile << lc << "\t" << machine_code << endl;
+			continue;
+		}
+		
+		cout << " " << lc << "\t" << ic1 << "\t" << ic2 << "\t " << ic3 << "\t\t\t" << lc << "\t" << machine_code << endl;
+		outfile << lc << "\t" << machine_code << endl;
+        
     }
-
-    fin.close();
-    fout.close();
-
-    cout << "Program Executed";
 
     return 0;
 }
+
